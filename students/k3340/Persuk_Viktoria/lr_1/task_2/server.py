@@ -5,10 +5,10 @@ from typing import Tuple
 
 # 1 вариант
 def calculate_pythagorean(
-        a: int | None = None,
-        b: int | None = None,
-        c: int | None = None
-        ) -> Tuple[int, int] | bool:
+        a: float | None = None,
+        b: float | None = None,
+        c: float | None = None
+        ) -> Tuple[float, float] | bool:
     '''
     Подсчёт значений катетов/гипотенузы по теореме Пифагора
     с переменным количеством переменных (минимум 2 не None)
