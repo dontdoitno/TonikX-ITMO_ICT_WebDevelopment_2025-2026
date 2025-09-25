@@ -1,5 +1,5 @@
 import socket
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from urllib.parse import parse_qs
 
 
@@ -40,7 +40,7 @@ class MyHTTPServer:
         self._server_name = server_name
 
         # хранит оценки по дисциплинам
-        self.grades: Dict[str, str] = {}  # {дисциплина: оценка}
+        self.grades: Dict[str, List[int]] = {}  # {дисциплина: список оценок}
 
 
     def serve_forever(self) -> None:
@@ -137,6 +137,7 @@ class MyHTTPServer:
             self.send_response(conn, 200, 'OK', response_html)
 
         # POST /grades?subject=*&grade=* -- записать новую оценку по дисциплине
+        # в теле запроса только (x-www-form-urlencoded)
         if req.method == 'POST' and req.addr == '/grades':
             # Принимаем данные из тела и обновляем оценки
             form = parse_qs(req.body)
@@ -145,14 +146,16 @@ class MyHTTPServer:
 
             # Если есть и предмет, и оценка
             if subject and grade:
+                if subject not in self.grades:
+                    self.grades[subject] = []
                 # Сохраняем предмет и оценку
-                self.grades[subject] = grade
+                self.grades[subject].append(int(grade))
                 # Возвращаем HTML-страницу со всеми оценками + новая оценка
                 response_html = self._render_grades_page()
                 self.send_response(conn, 200, 'OK', response_html)
             else:
                 # При ошибке получения дисциплины или оценки кидаем 400 ошибку
-                self.send_response(conn, 400, 'Bad Request', '<h2>Ошибка: не заданы subject или grade</h2>')
+                self.send_response(conn, 400, 'Bad Request', '<h2>Ошибка: в body не заданы subject или grade</h2>')
 
 
     def send_response(self,
@@ -185,7 +188,7 @@ class MyHTTPServer:
         Рендерит (формирует) HTML-страницу со всеми оценками
         '''
         # Формируем строки в таблице (дисциплина -- оценка)
-        rows = ''.join(f'<tr><td>{discipline}</td><td>{grade}</td></tr>' for discipline, grade in self.grades.items())
+        rows = ''.join(f'<tr><td>{discipline}</td><td>{", ".join(map(str, grade))}</td></tr>' for discipline, grade in self.grades.items())
 
         # структура HTML-страницы
         html = f"""
@@ -198,7 +201,7 @@ class MyHTTPServer:
                 <table border="1" cellpadding="5" cellspacing="0">
                     <tr>
                         <th>Дисциплина</th>
-                        <th>Оценка</th>
+                        <th>Оценки</th>
                     </tr>
                     {rows}
                 </table>
